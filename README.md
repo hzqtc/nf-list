@@ -8,12 +8,21 @@ The tool fetches the Nerd Fonts CSS file and parses it to extract the icon infor
 
 ## Usage
 
-To run the tool, use the following command:
+### Prerequisites
+
+-   go
+-   A nerd font
+
+### Build
+
+To run the tool, use the following command (`.local/bin` needs to be in `PATH`):
 
 ```sh
 make install
 nf-list
 ```
+
+### Run
 
 This will output a list of all Nerd Font icons in the following format:
 
@@ -27,7 +36,7 @@ For example:
 nf-dev-git -> f1d3 | 
 ```
 
-## fzf integration
+### fzf integration
 
 The repository also includes wrapper scripts for `bash`, `zsh`, and `fish` to integrate with `fzf` for interactive searching.
 
