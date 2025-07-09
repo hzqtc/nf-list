@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 type nfIcon struct {
@@ -29,6 +29,7 @@ var (
 	compact    bool
 	outputJson bool
 	initShell  string
+	showHelp   bool
 )
 
 const (
@@ -77,38 +78,6 @@ var cacheDir = func() string {
 	}
 	return filepath.Join(home, ".cache")
 }()
-
-var rootCmd = &cobra.Command{
-	Use:   "nf-list",
-	Short: "List Nerd Font glyphs",
-	Run: func(cmd *cobra.Command, args []string) {
-		if initShell != "" {
-			switch initShell {
-			case "fish":
-				fmt.Println(fishFunc)
-			case "bash", "zsh":
-				fmt.Println(bashFunc)
-			default:
-				fmt.Fprintf(os.Stderr, "Unsupported shell: %s\n", initShell)
-			}
-			return
-		}
-
-		icons := loadNfIcons()
-		if random && len(icons) > 0 {
-			rand.Seed(time.Now().UnixNano())
-			icons = []nfIcon{icons[rand.Intn(len(icons))]}
-		} else {
-			if len(search) > 0 {
-				icons = filterIcons(icons, search)
-			}
-			if len(group) > 0 {
-				icons = filterGroup(icons, group)
-			}
-		}
-		printIcons(icons)
-	},
-}
 
 func printIcons(icons []nfIcon) {
 	if outputJson {
@@ -220,21 +189,57 @@ func loadNfIcons() []nfIcon {
 }
 
 func init() {
-	rootCmd.Flags().StringArrayVar(&search, "search", []string{}, "Filter icons by substring")
-	rootCmd.Flags().StringArrayVar(
+	pflag.StringArrayVarP(&search, "search", "s", []string{}, "Filter icons by substring")
+	pflag.StringArrayVarP(
 		&group,
 		"group",
+		"g",
 		[]string{},
 		"Filter icons by group prefix (cod, custom, dev, extra, fa, fae, iec, indent, indentation, linux, md, oct, pl, ple, pom, seti, weather)",
 	)
-	rootCmd.Flags().BoolVar(&random, "random", false, "Output one random icon")
-	rootCmd.Flags().BoolVar(&compact, "compact", false, "Only print the icon character")
-	rootCmd.Flags().BoolVar(&outputJson, "json", false, "Output as JSON")
-	rootCmd.Flags().StringVar(&initShell, "init", "", "Print shell integration with fzf for [fish|bash|zsh]")
+	pflag.BoolVarP(&random, "random", "r", false, "Output one random icon")
+	pflag.BoolVarP(&compact, "compact", "c", false, "Only print the icon character")
+	pflag.BoolVar(&outputJson, "json", false, "Output as JSON")
+	pflag.StringVar(&initShell, "init", "", "Print shell integration with fzf for [fish|bash|zsh]")
+	pflag.BoolVarP(&showHelp, "help", "h", false, "Show help message")
+
+	pflag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: nf-list [flags]\n\nFlags:\n")
+		pflag.PrintDefaults()
+	}
 }
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
+	pflag.Parse()
+
+	if showHelp {
+		pflag.Usage()
+		os.Exit(0)
 	}
+
+	if initShell != "" {
+		switch initShell {
+		case "fish":
+			fmt.Println(fishFunc)
+		case "bash", "zsh":
+			fmt.Println(bashFunc)
+		default:
+			fmt.Fprintf(os.Stderr, "Unsupported shell: %s\n", initShell)
+		}
+		return
+	}
+
+	icons := loadNfIcons()
+	if random && len(icons) > 0 {
+		rand.Seed(time.Now().UnixNano())
+		icons = []nfIcon{icons[rand.Intn(len(icons))]}
+	} else {
+		if len(search) > 0 {
+			icons = filterIcons(icons, search)
+		}
+		if len(group) > 0 {
+			icons = filterGroup(icons, group)
+		}
+	}
+	printIcons(icons)
 }
