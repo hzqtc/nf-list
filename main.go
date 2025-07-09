@@ -28,6 +28,39 @@ var (
 	random     bool
 	compact    bool
 	outputJson bool
+	initShell  string
+)
+
+const (
+	fishFunc = `function nfzf
+		nf-list $argv | fzf --style minimal -m --ansi --preview '
+			set parts (string split " -> " -- {})
+			set class $parts[1]
+
+			set right (string split " | " -- $parts[2])
+			set hex $right[1]
+			set char $right[2]
+
+			echo -e "Name:   $class"
+			echo -e "Symbol: $char"
+			echo -e "Hex:    $hex\n"
+			echo -e "$char $char $char"
+		'
+	end`
+	bashFunc = `nfzf() {
+		nf-list "$@" | fzf --style minimal -m --ansi --preview '
+			line="{}"
+			class="${line%% -> *}"
+			right="${line#* -> }"
+			hex="${right%% | *}"
+			char="${right#* | }"
+
+			echo -e "Name:   $class"
+			echo -e "Symbol: $char"
+			echo -e "Hex:    $hex\n"
+			echo -e "$char $char $char"
+		'
+	}`
 )
 
 const (
@@ -49,6 +82,18 @@ var rootCmd = &cobra.Command{
 	Use:   "nf-list",
 	Short: "List Nerd Font glyphs",
 	Run: func(cmd *cobra.Command, args []string) {
+		if initShell != "" {
+			switch initShell {
+			case "fish":
+				fmt.Println(fishFunc)
+			case "bash", "zsh":
+				fmt.Println(bashFunc)
+			default:
+				fmt.Fprintf(os.Stderr, "Unsupported shell: %s\n", initShell)
+			}
+			return
+		}
+
 		icons := loadNfIcons()
 		if random && len(icons) > 0 {
 			rand.Seed(time.Now().UnixNano())
@@ -185,6 +230,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&random, "random", false, "Output one random icon")
 	rootCmd.Flags().BoolVar(&compact, "compact", false, "Only print the icon character")
 	rootCmd.Flags().BoolVar(&outputJson, "json", false, "Output as JSON")
+	rootCmd.Flags().StringVar(&initShell, "init", "", "Print shell integration with fzf for [fish|bash|zsh]")
 }
 
 func main() {
